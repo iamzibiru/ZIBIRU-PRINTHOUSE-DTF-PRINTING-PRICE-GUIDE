@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DTF Printing Price Guide</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f2f2f7; --surface: #ffffff; --surface2: #f2f2f7;
+    --border: rgba(60,60,67,0.12); --border2: rgba(60,60,67,0.2);
+    --text: #1c1c1e; --text2: #6e6e73; --text3: #aeaeb2;
+    --accent: #007aff; --accent-light: rgba(0,122,255,0.08);
+    --green: #34c759; --red: #ff3b30; --orange: #ff9500;
+    --radius-sm: 8px; --radius-lg: 16px;
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); padding: 28px 24px 48px; }
+  h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.4px; margin-bottom: 3px; }
+  .subtitle { font-size: 11px; color: var(--text2); margin-bottom: 24px; letter-spacing: 0.03em; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .full-col { margin-bottom: 16px; }
+  .section { background: var(--surface); border-radius: var(--radius-lg); border: 0.5px solid var(--border); overflow: hidden; }
+  .section-label { font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text2); padding: 14px 16px 10px; }
+  .field-row { display: flex; align-items: center; padding: 11px 16px; border-top: 0.5px solid var(--border); }
+  .field-label { flex: 1; font-size: 14px; color: var(--text); }
+  .field-label small { display: block; font-size: 11px; color: var(--text3); margin-top: 1px; }
+  input[type=number] { width: 80px; text-align: right; border: none; background: transparent; font-size: 14px; color: var(--accent); font-family: inherit; outline: none; -moz-appearance: textfield; }
+  input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+  input[type=number]::placeholder { color: var(--text3); }
+  select { border: none; background: transparent; font-size: 14px; color: var(--accent); font-family: inherit; outline: none; width: 220px; }
+  .toggle-row { display: flex; align-items: center; padding: 11px 16px; border-top: 0.5px solid var(--border); }
+  .toggle-row:first-of-type { border-top: none; }
+  .toggle-label { flex: 1; font-size: 14px; color: var(--text); }
+  .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+  .toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+  .toggle-track { position: absolute; inset: 0; background: var(--border2); border-radius: 12px; transition: background 0.2s; }
+  .toggle input:checked + .toggle-track { background: var(--green); }
+  .toggle-thumb { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; background: #fff; border-radius: 50%; transition: transform 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+  .toggle input:checked ~ .toggle-thumb { transform: translateX(18px); }
+  .sub-fields { overflow: hidden; max-height: 0; transition: max-height 0.3s ease; }
+  .sub-fields.open { max-height: 300px; }
+  .sub-field-row { display: flex; align-items: center; padding: 10px 16px 10px 30px; border-top: 0.5px solid var(--border); background: var(--surface2); }
+  .sub-field-label { flex: 1; font-size: 13px; color: var(--text2); }
+  .sub-field-row input { color: var(--text); font-size: 13px; width: 70px; }
+  .size-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 1px; background: var(--border); }
+  .size-cell { background: var(--surface); padding: 10px 8px; text-align: center; }
+  .size-cell-label { font-size: 11px; color: var(--text2); margin-bottom: 2px; font-weight: 500; }
+  .size-cell-price { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 7px; }
+  .size-cell input { width: 100%; border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 5px 4px; text-align: center; font-size: 13px; color: var(--text); font-family: inherit; background: var(--surface2); outline: none; -moz-appearance: textfield; }
+  .size-cell input::-webkit-inner-spin-button, .size-cell input::-webkit-outer-spin-button { -webkit-appearance: none; }
+  .size-cell input:focus { border-color: var(--accent); background: var(--accent-light); }
+  .size-cell input::placeholder { color: var(--text3); }
+  .addon-row { display: flex; align-items: center; padding: 11px 16px; border-top: 0.5px solid var(--border); gap: 12px; cursor: pointer; }
+  .addon-row:first-of-type { border-top: none; }
+  .addon-check { width: 20px; height: 20px; border: 1.5px solid var(--border2); border-radius: 6px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.15s; background: var(--surface); }
+  .addon-check.checked { background: var(--accent); border-color: var(--accent); }
+  .addon-check.checked::after { content: ''; width: 5px; height: 9px; border: 2px solid #fff; border-top: none; border-left: none; transform: rotate(45deg) translateY(-1px); display: block; }
+  .addon-radio { width: 20px; height: 20px; border: 1.5px solid var(--border2); border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.15s; background: var(--surface); }
+  .addon-radio.checked { border-color: var(--accent); }
+  .addon-radio.checked::after { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); display: block; }
+  .addon-info { flex: 1; }
+  .addon-name { font-size: 14px; color: var(--text); }
+  .addon-note { font-size: 11px; color: var(--text3); margin-top: 1px; }
+  .addon-note.warn { color: var(--orange); }
+  .addon-price-label { font-size: 14px; color: var(--text2); font-weight: 500; }
+  .sticker-group-label { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text3); padding: 10px 16px 4px; border-top: 0.5px solid var(--border); }
+  .grand-section { background: var(--surface); border-radius: var(--radius-lg); border: 0.5px solid var(--border); overflow: hidden; }
+  .grand-row { display: flex; align-items: center; justify-content: space-between; padding: 20px; }
+  .grand-label-text { font-size: 17px; font-weight: 600; }
+  .grand-amount { font-size: 30px; font-weight: 700; color: var(--accent); letter-spacing: -0.6px; }
+  .hint-bar { padding: 10px 18px; border-top: 0.5px solid var(--border); background: var(--surface2); }
+  .hint-text { font-size: 12px; color: var(--text2); }
+  .hint-text.ok { color: var(--green); }
+</style>
+</head>
+<body>
+
+<h1>ZIBIRU PRINTHOUSE DTF PRINTING PRICE GUIDE</h1>
+<p class="subtitle">QUALITY OVER QUANTITY</p>
+
+<div class="full-col section">
+  <div class="section-label">Order info</div>
+  <div class="field-row">
+    <span class="field-label">Quantity</span>
+    <input type="number" id="qty" placeholder="0" min="1" style="font-size:20px; font-weight:700;" oninput="compute()">
+  </div>
+</div>
+
+<div class="two-col">
+  <div class="section">
+    <div class="section-label">Front print</div>
+    <div class="toggle-row">
+      <span class="toggle-label">Enable front print</span>
+      <label class="toggle">
+        <input type="checkbox" id="hasFront" onchange="toggleArea('front')">
+        <div class="toggle-track"></div>
+        <div class="toggle-thumb"></div>
+      </label>
+    </div>
+    <div class="sub-fields" id="frontFields">
+      <div class="sub-field-row">
+        <span class="sub-field-label">Width (in)</span>
+        <input type="number" id="fw" value="0" step="0.1" min="0" oninput="compute()">
+      </div>
+      <div class="sub-field-row">
+        <span class="sub-field-label">Height (in)</span>
+        <input type="number" id="fh" value="0" step="0.1" min="0" oninput="compute()">
+      </div>
+      <div class="sub-field-row">
+        <span class="sub-field-label" style="color:var(--text3);">Sq inches</span>
+        <span style="font-size:13px; color:var(--text3);" id="frontSqDisplay">--</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">Back print</div>
+    <div class="toggle-row">
+      <span class="toggle-label">Enable back print</span>
+      <label class="toggle">
+        <input type="checkbox" id="hasBack" onchange="toggleArea('back')">
+        <div class="toggle-track"></div>
+        <div class="toggle-thumb"></div>
+      </label>
+    </div>
+    <div class="sub-fields" id="backFields">
+      <div class="sub-field-row">
+        <span class="sub-field-label">Width (in)</span>
+        <input type="number" id="bw" value="0" step="0.1" min="0" oninput="compute()">
+      </div>
+      <div class="sub-field-row">
+        <span class="sub-field-label">Height (in)</span>
+        <input type="number" id="bh" value="0" step="0.1" min="0" oninput="compute()">
+      </div>
+      <div class="sub-field-row">
+        <span class="sub-field-label" style="color:var(--text3);">Sq inches</span>
+        <span style="font-size:13px; color:var(--text3);" id="backSqDisplay">--</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="full-col section">
+  <div class="toggle-row" style="border-top:none;">
+    <span class="toggle-label">Inner print</span>
+    <label class="toggle">
+      <input type="checkbox" id="hasInner" checked onchange="compute()">
+      <div class="toggle-track"></div>
+      <div class="toggle-thumb"></div>
+    </label>
+  </div>
+</div>
+
+<div class="full-col section">
+  <div class="section-label">Optional add-ons</div>
+
+  <div class="addon-row" onclick="toggleAddon('ziplock')">
+    <div class="addon-check" id="check-ziplock"></div>
+    <div class="addon-info">
+      <div class="addon-name">Printed Frosted Ziplocks</div>
+      <div class="addon-note" id="note-ziplock">MOQ = 100 pcs</div>
+    </div>
+  </div>
+
+  <div class="addon-row" onclick="toggleAddon('hangtag')">
+    <div class="addon-check" id="check-hangtag"></div>
+    <div class="addon-info"><div class="addon-name">Hangtag</div></div>
+  </div>
+
+  <div class="addon-row" onclick="toggleAddon('hemlabel')">
+    <div class="addon-check" id="check-hemlabel"></div>
+    <div class="addon-info"><div class="addon-name">Hem Label</div></div>
+  </div>
+
+  <div class="addon-row" onclick="toggleAddon('hemsleeeve')">
+    <div class="addon-check" id="check-hemsleeeve"></div>
+    <div class="addon-info"><div class="addon-name">Hem and Sleeve Label</div></div>
+  </div>
+
+  <div class="addon-row" onclick="toggleAddon('acidwash')">
+    <div class="addon-check" id="check-acidwash"></div>
+    <div class="addon-info"><div class="addon-name">Acid Wash</div></div>
+  </div>
+
+  <div class="sticker-group-label">Sticker (select one only)</div>
+
+  <div class="addon-row" onclick="selectSticker('rect')">
+    <div class="addon-radio" id="radio-rect"></div>
+    <div class="addon-info"><div class="addon-name">Sticker Rectangular Cut (Laminated)</div></div>
+  </div>
+
+  <div class="addon-row" onclick="selectSticker('cts')">
+    <div class="addon-radio" id="radio-cts"></div>
+    <div class="addon-info"><div class="addon-name">Sticker Cut-to-Shape</div></div>
+  </div>
+
+  <div class="addon-row" onclick="selectSticker('ctsl')">
+    <div class="addon-radio" id="radio-ctsl"></div>
+    <div class="addon-info"><div class="addon-name">Sticker Cut-to-Shape (Laminated)</div></div>
+  </div>
+</div>
+
+<div class="full-col section">
+  <div class="section-label">T-shirt</div>
+  <div class="field-row">
+    <span class="field-label">Shirt model</span>
+    <select id="shirtModel" onchange="buildSizeGrid()"></select>
+  </div>
+  <div id="sizeSection" style="display:none;">
+    <div style="padding:14px 16px 8px; border-top:0.5px solid var(--border);">
+      <div class="section-label" style="padding:0;">Size &amp; quantity breakdown</div>
+    </div>
+    <div class="size-grid" id="sizeGrid"></div>
+  </div>
+</div>
+
+<div class="full-col grand-section">
+  <div class="grand-row">
+    <span class="grand-label-text">Grand total</span>
+    <span class="grand-amount" id="grandTotal"></span>
+  </div>
+  <div id="pricePerShirtRow" style="display:none; justify-content:space-between; align-items:center; padding:12px 20px; border-top:0.5px solid var(--border);">
+    <span style="font-size:14px; color:var(--text2);">Price per shirt</span>
+    <span style="font-size:18px; font-weight:600; color:var(--accent);" id="pricePerShirt"></span>
+  </div>
+  <div class="hint-bar" id="hintBar" style="display:none;">
+    <span class="hint-text" id="modeHint"></span>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// EDIT SHIRT PRICES HERE
+// ============================================================
+const shirts = [
+  { name: "Shirt provided by client", sizes: [], clientProvided: true },
+  { name: "1. 3K Premium Lite", sizes: [
+    { label:"XS-2XL", price:184 }, { label:"3XL", price:194 }]},
+  { name: "2. FOTL Soft Premium", sizes: [
+    { label:"XS-XL", price:205 }, { label:"2XL", price:240 }, { label:"3XL", price:244 }, { label:"4XL", price:250 }, { label:"5XL", price:255 }]},
+  { name: "3. 3K Reductive", sizes: [
+    { label:"S-2XL", price:159 }, { label:"3XL", price:169 }]},
+  { name: "4. 3K Premium", sizes: [
+    { label:"XS-2XL", price:214 }, { label:"3XL", price:224 }, { label:"4XL-5XL", price:234 }]},
+  { name: "5. 3K Cotton Blend", sizes: [
+    { label:"XS-2XL", price:184 }, { label:"3XL", price:194 }]},
+  { name: "6. FOTL Soft Oversize Cropped", sizes: [
+    { label:"S-XL", price:249 }]},
+  { name: "7. FOTL Soft Premium Oversize", sizes: [
+    { label:"S-XL", price:249 }, { label:"2XL", price:289 }, { label:"3XL", price:309 }]},
+  { name: "8. 3K Promax Blend", sizes: [
+    { label:"S-XL", price:224 }, { label:"2XL", price:244 }]},
+  { name: "9. 3K Promax Cotton", sizes: [
+    { label:"S-XL", price:254 }, { label:"2XL", price:274 }]},
+  { name: "10. Pro Club Inspired", sizes: [
+    { label:"S-3XL", price:214 }]},
+  { name: "11. Boxy Crop", sizes: [
+    { label:"S-2XL", price:250 }]},
+  { name: "12. FOTL Heavy Premium", sizes: [
+    { label:"S-XL", price:275 }, { label:"2XL", price:319 }, { label:"3XL", price:339 }]},
+  { name: "13. 3K Terry Jersey", sizes: [
+    { label:"S-XL", price:249 }, { label:"2XL", price:269 }]},
+];
+// ============================================================
+// END OF PRICE LIST
+// ============================================================
+
+// ============================================================
+// SHIPPING COST — change number to update
+// ============================================================
+const SHIPPING_COST = 350;
+// ============================================================
+// END OF SHIPPING COST
+// ============================================================
+
+// ============================================================
+// ADD-ON PRICES — change numbers to update
+// Per-piece add-ons (multiplied by quantity)
+// ============================================================
+const ADDON_PRICES = {
+  ziplock:    20,   // Printed Frosted Ziplocks (per pc)
+  hangtag:     8,   // Hangtag (per pc)
+  hemlabel:   13,   // Hem Label (per pc)
+  hemsleeeve: 21,   // Hem and Sleeve Label (per pc)
+  acidwash:   80,   // Acid Wash (per pc)
+};
+// ============================================================
+// END OF PER-PIECE ADD-ON PRICES
+// ============================================================
+
+// ============================================================
+// STICKER PRICES — flat fee added once to grand total
+// ============================================================
+const STICKER_PRICES = {
+  rect: 500,   // Sticker Rectangular Cut (Laminated)
+  cts:  600,   // Sticker Cut-to-Shape
+  ctsl: 670,   // Sticker Cut-to-Shape (Laminated)
+};
+// ============================================================
+// END OF STICKER PRICES
+// ============================================================
+
+const addonState   = { ziplock: false, hangtag: false, hemlabel: false, hemsleeeve: false, acidwash: false };
+let selectedSticker = null;
+
+function toggleAddon(key) {
+  addonState[key] = !addonState[key];
+  const el = document.getElementById('check-' + key);
+  el.classList.toggle('checked', addonState[key]);
+  if (key === 'ziplock') updateZiplockNote();
+  compute();
+}
+
+function selectSticker(key) {
+  if (selectedSticker === key) { selectedSticker = null; }
+  else { selectedSticker = key; }
+  ['rect','cts','ctsl'].forEach(k => {
+    document.getElementById('radio-' + k).classList.toggle('checked', selectedSticker === k);
+  });
+  compute();
+}
+
+function updateZiplockNote() {
+  const qty = parseInt(document.getElementById('qty').value) || 0;
+  const note = document.getElementById('note-ziplock');
+  if (addonState.ziplock && qty > 0 && qty < 100) {
+    note.textContent = 'Warning: MOQ is 100 pcs (current qty: ' + qty + ')';
+    note.className = 'addon-note warn';
+  } else {
+    note.textContent = 'MOQ = 100 pcs';
+    note.className = 'addon-note';
+  }
+}
+
+function getAddonPerUnitCost() {
+  let perUnit = 0;
+  Object.keys(addonState).forEach(k => { if (addonState[k]) perUnit += ADDON_PRICES[k]; });
+  return perUnit;
+}
+
+function getAddonFlatCost() {
+  return selectedSticker ? STICKER_PRICES[selectedSticker] : 0;
+}
+
+const sel = document.getElementById('shirtModel');
+shirts.forEach((s, i) => {
+  const o = document.createElement('option');
+  o.value = i; o.textContent = s.name;
+  sel.appendChild(o);
+});
+
+function toggleArea(side) {
+  const id = side === 'front' ? 'hasFront' : 'hasBack';
+  const fieldsId = side === 'front' ? 'frontFields' : 'backFields';
+  document.getElementById(fieldsId).classList.toggle('open', document.getElementById(id).checked);
+  compute();
+}
+
+function buildSizeGrid() {
+  const grid = document.getElementById('sizeGrid');
+  const sizeSection = document.getElementById('sizeSection');
+  grid.innerHTML = '';
+  const s = shirts[+sel.value];
+  if (!s || s.clientProvided) { sizeSection.style.display = 'none'; compute(); return; }
+  sizeSection.style.display = '';
+  s.sizes.forEach((sz, i) => {
+    const cell = document.createElement('div');
+    cell.className = 'size-cell';
+    cell.innerHTML =
+      '<div class="size-cell-label">' + sz.label + '</div>' +
+      '<div class="size-cell-price" id="scprice-' + i + '">&#8369;' + sz.price.toFixed(2) + '</div>' +
+      '<input type="number" min="0" placeholder="qty" data-idx="' + i + '">';
+    grid.appendChild(cell);
+  });
+  grid.querySelectorAll('input').forEach(inp => inp.addEventListener('input', compute));
+  compute();
+}
+
+function v(id) { return parseFloat(document.getElementById(id).value) || 0; }
+
+function fmt(n) { return Math.round(n).toLocaleString('en-PH', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+
+function setGrand(amount, hint, hintOk) {
+  document.getElementById('grandTotal').innerHTML = amount != null ? '&#8369;' + fmt(amount) : '';
+  const hintBar = document.getElementById('hintBar');
+  const hintEl  = document.getElementById('modeHint');
+  if (hint) { hintBar.style.display = ''; hintEl.textContent = hint; hintEl.className = 'hint-text' + (hintOk ? ' ok' : ''); }
+  else { hintBar.style.display = 'none'; }
+}
+
+function compute() {
+  const shirt = shirts[+sel.value];
+  if (!shirt) return;
+
+  const hasFront = document.getElementById('hasFront').checked;
+  const hasBack  = document.getElementById('hasBack').checked;
+  const hasInner = document.getElementById('hasInner').checked;
+  const qtyEl    = document.getElementById('qty');
+  const qty      = parseInt(qtyEl.value) || 0;
+
+  const fSq = hasFront ? v('fw') * v('fh') : 0;
+  const bSq = hasBack  ? v('bw') * v('bh') : 0;
+  const totalSq = fSq + bSq;
+  const hasPrint = totalSq > 0;
+
+  document.getElementById('frontSqDisplay').textContent = hasFront && fSq > 0 ? fSq.toFixed(2) : '--';
+  document.getElementById('backSqDisplay').textContent  = hasBack  && bSq > 0 ? bSq.toFixed(2) : '--';
+
+  updateZiplockNote();
+
+  let printCharge = 0;
+  if (hasPrint) {
+    printCharge = 50;
+    if (fSq > 0 && bSq > 0) printCharge += 25;
+    if (hasInner) printCharge += 15;
+  }
+
+  const addonPerUnit = getAddonPerUnitCost();
+  const addonFlat    = getAddonFlatCost();
+  const printPerUnit = qty > 0 && hasPrint ? (totalSq * 0.349 + printCharge + SHIPPING_COST / qty) : null;
+
+  if (!shirt.clientProvided) {
+    shirt.sizes.forEach((sz, i) => {
+      const el = document.getElementById('scprice-' + i);
+      if (!el) return;
+      if (printPerUnit !== null) {
+        el.innerHTML = '&#8369;' + fmt(sz.price + printPerUnit + addonPerUnit);
+      } else {
+        el.innerHTML = '&#8369;' + sz.price.toFixed(2);
+      }
+    });
+  }
+
+  if (shirt.clientProvided) {
+    if (qty > 0 && hasPrint) {
+      const printCostTotal = totalSq * 0.349 + printCharge + SHIPPING_COST / qty;
+      const perShirt = printCostTotal + addonPerUnit;
+      const total = perShirt * qty + addonFlat;
+      document.getElementById('pricePerShirtRow').style.display = 'flex';
+      document.getElementById('pricePerShirt').innerHTML = '&#8369;' + fmt(perShirt);
+      setGrand(total, 'Print cost only — shirt provided by client', false);
+    } else {
+      document.getElementById('pricePerShirtRow').style.display = 'none';
+      document.getElementById('pricePerShirt').innerHTML = '';
+      setGrand(null, null);
+    }
+    return;
+  }
+
+  document.getElementById('pricePerShirtRow').style.display = 'none';
+
+  const qtyInputs = document.querySelectorAll('#sizeGrid input');
+  let bQty = 0, bShirt = 0, hasBreakdown = false;
+  qtyInputs.forEach((inp, i) => {
+    const q = parseInt(inp.value) || 0;
+    if (q > 0) hasBreakdown = true;
+    bQty += q;
+    bShirt += q * shirt.sizes[i].price;
+  });
+
+  if (hasBreakdown) {
+    qtyEl.value = bQty;
+    if (!hasPrint) { setGrand(null, null); return; }
+    const total = totalSq * 0.349 + printCharge + SHIPPING_COST / bQty + bShirt + addonPerUnit * bQty + addonFlat;
+    setGrand(total, 'Total based on size breakdown', true);
+  } else {
+    setGrand(null, null);
+  }
+}
+
+buildSizeGrid();
+compute();
+</script>
+</body>
+</html>
