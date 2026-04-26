@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DTF Printing Price Guide</title>
+<title>DTF Printing Price Calculator</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -75,7 +75,7 @@
 </head>
 <body>
 
-<h1>ZIBIRU PRINTHOUSE DTF PRINTING PRICE GUIDE</h1>
+<h1>ZIBIRU PRINTHOUSE DTF PRINTING PRICE CALCULATOR</h1>
 <p class="subtitle">QUALITY OVER QUANTITY</p>
 
 <div class="full-col section">
@@ -167,36 +167,43 @@
     <div class="addon-info"><div class="addon-name">Hangtag</div></div>
   </div>
 
-  <div class="addon-row" onclick="toggleAddon('hemlabel')">
-    <div class="addon-check" id="check-hemlabel"></div>
-    <div class="addon-info"><div class="addon-name">Hem Label</div></div>
-  </div>
-
-  <div class="addon-row" onclick="toggleAddon('hemsleeeve')">
-    <div class="addon-check" id="check-hemsleeeve"></div>
-    <div class="addon-info"><div class="addon-name">Hem and Sleeve Label</div></div>
-  </div>
-
   <div class="addon-row" onclick="toggleAddon('acidwash')">
     <div class="addon-check" id="check-acidwash"></div>
     <div class="addon-info"><div class="addon-name">Acid Wash</div></div>
+  </div>
+
+  <div class="sticker-group-label">Label (select one only)</div>
+
+  <div class="addon-row" onclick="selectLabel('sleevelabel')">
+    <div class="addon-radio" id="radio-sleevelabel"></div>
+    <div class="addon-info"><div class="addon-name">Sleeve Label</div></div>
+  </div>
+
+  <div class="addon-row" onclick="selectLabel('hemlabel')">
+    <div class="addon-radio" id="radio-hemlabel"></div>
+    <div class="addon-info"><div class="addon-name">Hem Label</div></div>
+  </div>
+
+  <div class="addon-row" onclick="selectLabel('hemsleeeve')">
+    <div class="addon-radio" id="radio-hemsleeeve"></div>
+    <div class="addon-info"><div class="addon-name">Hem and Sleeve Label</div></div>
   </div>
 
   <div class="sticker-group-label">Sticker (select one only)</div>
 
   <div class="addon-row" onclick="selectSticker('rect')">
     <div class="addon-radio" id="radio-rect"></div>
-    <div class="addon-info"><div class="addon-name">Sticker Rectangular Cut (Laminated)</div></div>
+    <div class="addon-info"><div class="addon-name">Rectangular Cut (Laminated)</div></div>
   </div>
 
   <div class="addon-row" onclick="selectSticker('cts')">
     <div class="addon-radio" id="radio-cts"></div>
-    <div class="addon-info"><div class="addon-name">Sticker Cut-to-Shape</div></div>
+    <div class="addon-info"><div class="addon-name">Cut to Shape</div></div>
   </div>
 
   <div class="addon-row" onclick="selectSticker('ctsl')">
     <div class="addon-radio" id="radio-ctsl"></div>
-    <div class="addon-info"><div class="addon-name">Sticker Cut-to-Shape (Laminated)</div></div>
+    <div class="addon-info"><div class="addon-name">Cut to Shape (Laminated)</div></div>
   </div>
 </div>
 
@@ -280,13 +287,20 @@ const SHIPPING_COST = 350;
 const ADDON_PRICES = {
   ziplock:    20,   // Printed Frosted Ziplocks (per pc)
   hangtag:     8,   // Hangtag (per pc)
-  hemlabel:   13,   // Hem Label (per pc)
-  hemsleeeve: 21,   // Hem and Sleeve Label (per pc)
   acidwash:   80,   // Acid Wash (per pc)
 };
 // ============================================================
 // END OF PER-PIECE ADD-ON PRICES
 // ============================================================
+
+// ============================================================
+// LABEL PRICES — radio group (select one only), per piece
+// ============================================================
+const LABEL_PRICES = {
+  sleevelabel: 13,  // Sleeve Label (per pc)
+  hemlabel:    13,  // Hem Label (per pc)
+  hemsleeeve:  21,  // Hem and Sleeve Label (per pc)
+};
 
 // ============================================================
 // STICKER PRICES — flat fee added once to grand total
@@ -300,8 +314,9 @@ const STICKER_PRICES = {
 // END OF STICKER PRICES
 // ============================================================
 
-const addonState   = { ziplock: false, hangtag: false, hemlabel: false, hemsleeeve: false, acidwash: false };
+const addonState   = { ziplock: false, hangtag: false, acidwash: false };
 let selectedSticker = null;
+let selectedLabel = null;
 
 function toggleAddon(key) {
   addonState[key] = !addonState[key];
@@ -316,6 +331,15 @@ function selectSticker(key) {
   else { selectedSticker = key; }
   ['rect','cts','ctsl'].forEach(k => {
     document.getElementById('radio-' + k).classList.toggle('checked', selectedSticker === k);
+  });
+  compute();
+}
+
+function selectLabel(key) {
+  if (selectedLabel === key) { selectedLabel = null; }
+  else { selectedLabel = key; }
+  ['sleevelabel','hemlabel','hemsleeeve'].forEach(k => {
+    document.getElementById('radio-' + k).classList.toggle('checked', selectedLabel === k);
   });
   compute();
 }
@@ -335,11 +359,23 @@ function updateZiplockNote() {
 function getAddonPerUnitCost() {
   let perUnit = 0;
   Object.keys(addonState).forEach(k => { if (addonState[k]) perUnit += ADDON_PRICES[k]; });
+  if (selectedLabel) perUnit += LABEL_PRICES[selectedLabel];
   return perUnit;
 }
 
 function getAddonFlatCost() {
   return selectedSticker ? STICKER_PRICES[selectedSticker] : 0;
+}
+
+// ============================================================
+// INFLATION — 3.3% per year starting 2027 (base year 2026)
+// ============================================================
+function getInflationMultiplier() {
+  const BASE_YEAR = 2026;
+  const RATE = 0.033;
+  const currentYear = new Date().getFullYear();
+  const years = Math.max(0, currentYear - BASE_YEAR);
+  return Math.pow(1 + RATE, years);
 }
 
 const sel = document.getElementById('shirtModel');
@@ -415,6 +451,8 @@ function compute() {
     if (hasInner) printCharge += 15;
   }
 
+  const inflation = getInflationMultiplier();
+  const currentYear = new Date().getFullYear();
   const addonPerUnit = getAddonPerUnitCost();
   const addonFlat    = getAddonFlatCost();
   const printPerUnit = qty > 0 && hasPrint ? (totalSq * 0.349 + printCharge + SHIPPING_COST / qty) : null;
@@ -424,9 +462,9 @@ function compute() {
       const el = document.getElementById('scprice-' + i);
       if (!el) return;
       if (printPerUnit !== null) {
-        el.innerHTML = '&#8369;' + fmt(sz.price + printPerUnit + addonPerUnit);
+        el.innerHTML = '&#8369;' + fmt((sz.price + printPerUnit + addonPerUnit) * inflation);
       } else {
-        el.innerHTML = '&#8369;' + sz.price.toFixed(2);
+        el.innerHTML = '&#8369;' + fmt(sz.price * inflation);
       }
     });
   }
@@ -434,11 +472,12 @@ function compute() {
   if (shirt.clientProvided) {
     if (qty > 0 && hasPrint) {
       const printCostTotal = totalSq * 0.349 + printCharge + SHIPPING_COST / qty;
-      const perShirt = printCostTotal + addonPerUnit;
-      const total = perShirt * qty + addonFlat;
+      const perShirt = (printCostTotal + addonPerUnit) * inflation;
+      const total = perShirt * qty + addonFlat * inflation;
       document.getElementById('pricePerShirtRow').style.display = 'flex';
       document.getElementById('pricePerShirt').innerHTML = '&#8369;' + fmt(perShirt);
-      setGrand(total, 'Print cost only — shirt provided by client', false);
+      const inflationNote = currentYear > 2026 ? ' · ' + currentYear + ' pricing (+' + (((inflation - 1) * 100).toFixed(1)) + '% inflation)' : '';
+      setGrand(total, 'Print cost only — shirt provided by client' + inflationNote, false);
     } else {
       document.getElementById('pricePerShirtRow').style.display = 'none';
       document.getElementById('pricePerShirt').innerHTML = '';
@@ -461,8 +500,10 @@ function compute() {
   if (hasBreakdown) {
     qtyEl.value = bQty;
     if (!hasPrint) { setGrand(null, null); return; }
-    const total = totalSq * 0.349 + printCharge + SHIPPING_COST / bQty + bShirt + addonPerUnit * bQty + addonFlat;
-    setGrand(total, 'Total based on size breakdown', true);
+    const rawTotal = totalSq * 0.349 + printCharge + SHIPPING_COST / bQty + bShirt + addonPerUnit * bQty + addonFlat;
+    const total = rawTotal * inflation;
+    const inflationNote = currentYear > 2026 ? ' · ' + currentYear + ' pricing (+' + (((inflation - 1) * 100).toFixed(1)) + '% inflation)' : '';
+    setGrand(total, 'Total based on size breakdown' + inflationNote, true);
   } else {
     setGrand(null, null);
   }
