@@ -123,6 +123,17 @@
     <span style="font-size:12px; color:var(--accent); font-weight:500;">👕 You're providing the shirts — only print and add-on charges will be calculated.</span>
   </div>
 
+  <!-- Client-provided quantity input -->
+  <div id="clientQtyMode" style="display:none;">
+    <div class="field-row">
+      <span class="field-label">Total quantity<small>How many shirts are you bringing in?</small></span>
+      <input type="number" id="clientQty" placeholder="0" min="1" style="font-size:20px; font-weight:700;" oninput="compute()">
+    </div>
+    <div id="moqWarningClient" style="display:none; padding:10px 16px; border-top:0.5px solid var(--border); background:#fff3e0;">
+      <span style="font-size:12px; color:var(--orange); font-weight:500;">⚠️ Minimum order is 12 pcs. Pricing shown for reference only.</span>
+    </div>
+  </div>
+
   <!-- Mode switcher -->
   <div id="modeSwitcher" style="padding: 12px 16px; border-top: 0.5px solid var(--border); background: var(--surface2);">
     <div style="font-size:11px; color:var(--text2); margin-bottom:8px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase;">How are you ordering?</div>
@@ -254,7 +265,7 @@
     <div class="addon-check" id="check-ziplock"></div>
     <div class="addon-info">
       <div class="addon-name">Printed Frosted Ziplocks</div>
-      <div class="addon-note" id="note-ziplock">MOQ = 100 pcs</div>
+      <div class="addon-note" id="note-ziplock">MOQ = 100 pcs — orders below 100 are billed & receive 100 pcs</div>
     </div>
     <span class="addon-price-label">+₱18/pc</span>
   </div>
@@ -314,7 +325,7 @@
       <div class="addon-name">Rectangular Cut (Laminated)</div>
       <div class="addon-note">1x4ft sheet · clean straight cuts · laminated finish</div>
     </div>
-    <span class="addon-price-label">+₱500</span>
+    <span class="addon-price-label" id="sticker-price-rect">+₱500</span>
   </div>
 
   <div class="addon-row" onclick="selectSticker('cts')">
@@ -323,7 +334,7 @@
       <div class="addon-name">Cut to Shape</div>
       <div class="addon-note">1x4ft sheet · cut follows your design outline</div>
     </div>
-    <span class="addon-price-label">+₱600</span>
+    <span class="addon-price-label" id="sticker-price-cts">+₱600</span>
   </div>
 
   <div class="addon-row" onclick="selectSticker('ctsl')">
@@ -332,7 +343,7 @@
       <div class="addon-name">Cut to Shape (Laminated)</div>
       <div class="addon-note">1x4ft sheet · cut follows your design outline · laminated finish</div>
     </div>
-    <span class="addon-price-label">+₱670</span>
+    <span class="addon-price-label" id="sticker-price-ctsl">+₱670</span>
   </div>
 </div>
 
@@ -370,6 +381,7 @@ function resetAll() {
   sel.value = Array.from(sel.options).find(o => o.textContent === '3K Premium')?.value || 1;
   setMode('estimate');
   document.getElementById('qty').value = '';
+  document.getElementById('clientQty').value = '';
   document.querySelectorAll('#sizeGrid input').forEach(i => i.value = '');
   document.getElementById('qtyDisplay').textContent = '0';
   document.getElementById('hasFront').checked = false;
@@ -402,7 +414,9 @@ function copyQuote() {
   const grandEl  = document.getElementById('grandTotal').textContent.trim();
   let qty = 0;
   let sizeLines = '';
-  if (currentMode === 'estimate') {
+  if (shirt && shirt.clientProvided) {
+    qty = parseInt(document.getElementById('clientQty').value) || 0;
+  } else if (currentMode === 'estimate') {
     qty = parseInt(document.getElementById('qty').value) || 0;
   } else {
     document.querySelectorAll('#sizeGrid input').forEach((inp, i) => {
@@ -414,16 +428,69 @@ function copyQuote() {
   const frontH = parseFloat(document.getElementById('fh').value) || 0;
   const backW  = parseFloat(document.getElementById('bw').value)  || 0;
   const backH  = parseFloat(document.getElementById('bh').value)  || 0;
-  const activeAddons = [];
-  if (addonState.ziplock)  activeAddons.push('Printed Frosted Ziplocks (+₱18/pc)');
-  if (addonState.hangtag)  activeAddons.push('Hangtag (+₱8/pc)');
-  if (addonState.acidwash) activeAddons.push('Acid Wash (+₱80/pc)');
-  if (selectedLabel === 'sleevelabel') activeAddons.push('Sleeve Label (+₱13/pc)');
-  if (selectedLabel === 'hemlabel')    activeAddons.push('Hem Label (+₱13/pc)');
-  if (selectedLabel === 'hemsleeeve')  activeAddons.push('Hem & Sleeve Label (+₱21/pc)');
-  if (selectedSticker === 'rect')  activeAddons.push('Freebie Sticker: Rectangular Cut Laminated (+₱500)');
-  if (selectedSticker === 'cts')   activeAddons.push('Freebie Sticker: Cut to Shape (+₱600)');
-  if (selectedSticker === 'ctsl')  activeAddons.push('Freebie Sticker: Cut to Shape Laminated (+₱670)');
+  // Build cost breakdown block
+  let costBlock = 'GRAND TOTAL: ' + grandEl;
+  if (lastComputed && lastComputed.grand > 0) {
+    const inf = getInflationMultiplier();
+    const addonPerUnit = getAddonPerUnitCost();
+    const q = lastComputed.qty;
+    const L = [];
+
+    L.push('Cost Breakdown:');
+    if (lastComputed.perShirt != null) {
+      L.push('  Per shirt (print only): ₱' + fmt(lastComputed.perShirt) + '/pc');
+      L.push('  Print subtotal (' + q + ' pcs): ₱' + fmt(lastComputed.printSubtotal));
+    } else if (currentMode === 'breakdown' && shirt && !shirt.clientProvided && lastComputed.printPerUnit != null) {
+      document.querySelectorAll('#sizeGrid input').forEach((inp, i) => {
+        const sq = parseInt(inp.value) || 0;
+        if (sq > 0 && shirt.sizes[i]) {
+          const perPc = (shirt.sizes[i].price + lastComputed.printPerUnit) * inf;
+          L.push('  ' + shirt.sizes[i].label + ' (' + sq + ' pcs × ₱' + fmt(perPc) + '): ₱' + fmt(perPc * sq));
+        }
+      });
+      L.push('  ─────────────────────────────────');
+      L.push('  Shirts + print subtotal (' + q + ' pcs): ₱' + fmt(lastComputed.printSubtotal));
+    } else {
+      L.push('  Shirts + print subtotal (' + q + ' pcs): ₱' + fmt(lastComputed.printSubtotal));
+    }
+
+    const addonLines = [];
+    if (addonState.hangtag)  addonLines.push('  Hangtag (' + q + ' pcs × ₱8.00): ₱' + fmt(ADDON_PRICES.hangtag * q * inf));
+    if (addonState.acidwash) addonLines.push('  Acid Wash (' + q + ' pcs × ₱80.00): ₱' + fmt(ADDON_PRICES.acidwash * q * inf));
+    if (selectedLabel === 'sleevelabel') addonLines.push('  Sleeve Label (' + q + ' pcs × ₱13.00): ₱' + fmt(LABEL_PRICES.sleevelabel * q * inf));
+    if (selectedLabel === 'hemlabel')    addonLines.push('  Hem Label (' + q + ' pcs × ₱13.00): ₱' + fmt(LABEL_PRICES.hemlabel * q * inf));
+    if (selectedLabel === 'hemsleeeve')  addonLines.push('  Hem & Sleeve Label (' + q + ' pcs × ₱21.00): ₱' + fmt(LABEL_PRICES.hemsleeeve * q * inf));
+    L.push('');
+    if (addonLines.length) {
+      L.push('Add-ons:');
+      addonLines.forEach(l => L.push(l));
+      if (addonLines.length > 1) L.push('  Total: ₱' + fmt(lastComputed.addonPerUnitTotal));
+    } else {
+      L.push('Add-ons: None');
+    }
+
+    if (lastComputed.addonFlatTotal > 0) {
+      L.push('');
+      L.push('Flat Add-ons:');
+      if (addonState.ziplock) {
+        const zqty = Math.max(q, 100);
+        L.push('  — Printed Frosted Ziplocks (' + zqty + ' pcs billed): ₱' + fmt(ADDON_PRICES.ziplock * zqty * inf));
+      }
+      if (selectedSticker) {
+        const stickerNames = { rect: 'Rectangular Sticker (Laminated)', cts: 'Cut to Shape Sticker', ctsl: 'Cut to Shape Sticker (Laminated)' };
+        L.push('  — ' + stickerNames[selectedSticker] + ': ₱' + fmt(getStickerCost(q) * inf));
+      }
+      L.push('  Total: ₱' + fmt(lastComputed.addonFlatTotal));
+    } else {
+      L.push('');
+      L.push('Flat Add-ons: None');
+    }
+
+    L.push('');
+    L.push('GRAND TOTAL: ₱' + fmt(lastComputed.grand));
+    costBlock = L.join('\n');
+  }
+
   const lines = [
     'ZIBIRU PRINTHOUSE — DTF Printing Quote',
     '----------------------------------------',
@@ -435,9 +502,7 @@ function copyQuote() {
     hasBack  ? '  Back  — ' + backW  + ' x ' + backH  + ' in' : '  Back  — none',
     '  Inner label: ' + (hasInner ? 'Yes' : 'No'),
     '',
-    activeAddons.length ? 'Add-ons:\n  ' + activeAddons.join('\n  ') : 'Add-ons: None',
-    '',
-    'GRAND TOTAL: ' + grandEl,
+    costBlock,
     '----------------------------------------',
     'Prices are estimates only and subject to final confirmation.',
   ].join('\n');
@@ -555,6 +620,7 @@ const STICKER_PRICES = {
 const addonState   = { ziplock: false, hangtag: false, acidwash: false };
 let selectedSticker = null;
 let selectedLabel = null;
+let lastComputed = null;
 
 const sel = document.getElementById('shirtModel');
 
@@ -600,7 +666,10 @@ function selectLabel(key) {
 
 function updateZiplockNote() {
   let qty = 0;
-  if (currentMode === 'estimate') {
+  const shirt = shirts[+sel.value];
+  if (shirt && shirt.clientProvided) {
+    qty = parseInt(document.getElementById('clientQty').value) || 0;
+  } else if (currentMode === 'estimate') {
     qty = parseInt(document.getElementById('qty').value) || 0;
   } else {
     const qtyInputs = document.querySelectorAll('#sizeGrid input');
@@ -608,23 +677,46 @@ function updateZiplockNote() {
   }
   const note = document.getElementById('note-ziplock');
   if (addonState.ziplock && qty > 0 && qty < 100) {
-    note.textContent = 'Warning: MOQ is 100 pcs (current qty: ' + qty + ')';
+    note.textContent = 'Your order is ' + qty + ' pcs — you will be billed for 100 pcs and receive 100 printed frosted ziplocks.';
     note.className = 'addon-note warn';
   } else {
-    note.textContent = 'MOQ = 100 pcs';
+    note.textContent = 'MOQ = 100 pcs — orders below 100 are billed & receive 100 pcs';
     note.className = 'addon-note';
   }
 }
 
 function getAddonPerUnitCost() {
   let perUnit = 0;
-  Object.keys(addonState).forEach(k => { if (addonState[k]) perUnit += ADDON_PRICES[k]; });
+  Object.keys(addonState).forEach(k => {
+    if (addonState[k] && k !== 'ziplock') perUnit += ADDON_PRICES[k];
+  });
   if (selectedLabel) perUnit += LABEL_PRICES[selectedLabel];
   return perUnit;
 }
 
-function getAddonFlatCost() {
-  return selectedSticker ? STICKER_PRICES[selectedSticker] : 0;
+function getStickerCost(qty) {
+  if (!selectedSticker) return 0;
+  const base = STICKER_PRICES[selectedSticker];
+  return qty > 100 ? (base / 100) * qty : base;
+}
+
+function updateStickerPriceLabels(qty) {
+  ['rect', 'cts', 'ctsl'].forEach(k => {
+    const el = document.getElementById('sticker-price-' + k);
+    if (!el) return;
+    const base = STICKER_PRICES[k];
+    const cost = qty > 100 ? (base / 100) * qty : base;
+    el.textContent = '+₱' + Math.round(cost).toLocaleString('en-PH');
+  });
+}
+
+function getAddonFlatCost(qty) {
+  let flat = getStickerCost(qty);
+  if (addonState.ziplock) {
+    const ziplockQty = Math.max(qty, 100);
+    flat += ADDON_PRICES.ziplock * ziplockQty;
+  }
+  return flat;
 }
 
 // ============================================================
@@ -683,6 +775,7 @@ function buildSizeGrid() {
   const isClient = !s || s.clientProvided;
 
   document.getElementById('clientProvidedNotice').style.display = isClient ? '' : 'none';
+  document.getElementById('clientQtyMode').style.display = isClient ? '' : 'none';
   document.getElementById('modeSwitcher').style.display = isClient ? 'none' : '';
   document.getElementById('estimateMode').style.display = isClient ? 'none' : (currentMode === 'estimate' ? '' : 'none');
   document.getElementById('breakdownMode').style.display = isClient ? 'none' : (currentMode === 'breakdown' ? '' : 'none');
@@ -755,18 +848,22 @@ function compute() {
   document.getElementById('backSqDisplay').textContent  = hasBack  && bSq > 0 ? bSq.toFixed(2) : '--';
 
   // Show print warning if qty is set but no print enabled
-  const hasQty = currentMode === 'estimate'
-    ? (parseInt(document.getElementById('qty').value) || 0) > 0
-    : Array.from(document.querySelectorAll('#sizeGrid input')).some(i => parseInt(i.value) > 0);
+  const hasQty = shirt.clientProvided
+    ? (parseInt(document.getElementById('clientQty').value) || 0) > 0
+    : currentMode === 'estimate'
+      ? (parseInt(document.getElementById('qty').value) || 0) > 0
+      : Array.from(document.querySelectorAll('#sizeGrid input')).some(i => parseInt(i.value) > 0);
   document.getElementById('printWarning').style.display = hasQty && !hasPrint ? '' : 'none';
 
   // Show MOQ warning if qty is below minimum
-  const currentQty = currentMode === 'estimate'
-    ? (parseInt(document.getElementById('qty').value) || 0)
-    : Array.from(document.querySelectorAll('#sizeGrid input')).reduce((s, i) => s + (parseInt(i.value) || 0), 0);
+  const currentQty = shirt.clientProvided
+    ? (parseInt(document.getElementById('clientQty').value) || 0)
+    : currentMode === 'estimate'
+      ? (parseInt(document.getElementById('qty').value) || 0)
+      : Array.from(document.querySelectorAll('#sizeGrid input')).reduce((s, i) => s + (parseInt(i.value) || 0), 0);
   const belowMoq = currentQty > 0 && currentQty < MOQ;
-  document.getElementById('moqWarningEst').style.display = belowMoq && currentMode === 'estimate' ? '' : 'none';
-  document.getElementById('moqWarningBrk').style.display = belowMoq && currentMode === 'breakdown' ? '' : 'none';
+  document.getElementById('moqWarningEst').style.display = belowMoq && currentMode === 'estimate' && !shirt.clientProvided ? '' : 'none';
+  document.getElementById('moqWarningBrk').style.display = belowMoq && currentMode === 'breakdown' && !shirt.clientProvided ? '' : 'none';
 
   updateZiplockNote();
 
@@ -780,8 +877,31 @@ function compute() {
   const inflation    = getInflationMultiplier();
   const currentYear  = new Date().getFullYear();
   const addonPerUnit = getAddonPerUnitCost();
-  const addonFlat    = getAddonFlatCost();
   const inflationNote = currentYear > 2026 ? ' · ' + currentYear + ' pricing (+' + (((inflation - 1) * 100).toFixed(1)) + '% inflation)' : '';
+
+  // ── CLIENT-PROVIDED MODE ───────────────────────────────────
+  if (shirt.clientProvided) {
+    const qty = parseInt(document.getElementById('clientQty').value) || 0;
+    const belowMoqClient = qty > 0 && qty < MOQ;
+    document.getElementById('moqWarningClient').style.display = belowMoqClient ? '' : 'none';
+    document.getElementById('pricePerShirtRow').style.display = 'none';
+    const addonFlat = getAddonFlatCost(qty);
+    updateStickerPriceLabels(qty);
+    if (qty > 0 && hasPrint) {
+      const perShirt = (totalSq * 0.349 + printCharge + SHIPPING_COST / qty + addonPerUnit) * inflation;
+      const perShirtPrintOnly = (totalSq * 0.349 + printCharge + SHIPPING_COST / qty) * inflation;
+      const total = perShirt * qty + addonFlat * inflation;
+      lastComputed = { qty, printSubtotal: perShirtPrintOnly * qty, addonPerUnitTotal: addonPerUnit * qty * inflation, addonFlatTotal: addonFlat * inflation, grand: total, perShirt: perShirtPrintOnly };
+      document.getElementById('pricePerShirtRow').style.display = 'flex';
+      document.getElementById('pricePerShirt').innerHTML = '&#8369;' + fmt(perShirt);
+      setGrand(total, 'Print cost only — shirt provided by client' + inflationNote, false);
+    } else {
+      lastComputed = null;
+      setGrand(null, null);
+    }
+    updateSizePriceBreakdown(null, null, null, null);
+    return;
+  }
 
   // ── ESTIMATE MODE ──────────────────────────────────────────
   if (currentMode === 'estimate') {
@@ -790,26 +910,17 @@ function compute() {
 
     document.getElementById('pricePerShirtRow').style.display = 'none';
 
-    if (shirt.clientProvided) {
-      if (qty > 0 && hasPrint) {
-        const perShirt = (totalSq * 0.349 + printCharge + SHIPPING_COST / qty + addonPerUnit) * inflation;
-        const total = perShirt * qty + addonFlat * inflation;
-        document.getElementById('pricePerShirtRow').style.display = 'flex';
-        document.getElementById('pricePerShirt').innerHTML = '&#8369;' + fmt(perShirt);
-        setGrand(total, 'Print cost only — shirt provided by client' + inflationNote, false);
-      } else {
-        setGrand(null, null);
-      }
-      updateSizePriceBreakdown(null, null, null, null);
-      return;
-    }
-
+    const addonFlat = getAddonFlatCost(qty);
+    updateStickerPriceLabels(qty);
     if (qty > 0 && hasPrint) {
       const basePrice = shirt.sizes[0].price;
       const total = ((totalSq * 0.349 + printCharge + SHIPPING_COST / qty + basePrice + addonPerUnit) * qty + addonFlat) * inflation;
+      const printOnlySub = (totalSq * 0.349 + printCharge + SHIPPING_COST / qty + basePrice) * qty * inflation;
+      lastComputed = { qty, printSubtotal: printOnlySub, addonPerUnitTotal: addonPerUnit * qty * inflation, addonFlatTotal: addonFlat * inflation, grand: total, perShirt: null };
       setGrand(total, 'Estimate only — based on base size (XS-2XL). Larger sizes cost more.' + inflationNote, false);
       updateSizePriceBreakdown(shirt, totalSq * 0.349 + printCharge + SHIPPING_COST / qty, addonPerUnit, inflation);
     } else {
+      lastComputed = null;
       setGrand(null, null);
       updateSizePriceBreakdown(null, null, null, null);
     }
@@ -844,8 +955,21 @@ function compute() {
       return;
     }
 
-    const rawTotal = totalSq * 0.349 + printCharge + SHIPPING_COST / bQty + bShirt + addonPerUnit * bQty + addonFlat;
+    const addonFlat = getAddonFlatCost(bQty);
+    updateStickerPriceLabels(bQty);
+    const printPerUnitBrk = Math.round(totalSq * 0.349 + printCharge + SHIPPING_COST / bQty);
+    const rawTotal = printPerUnitBrk * bQty + bShirt + addonPerUnit * bQty + addonFlat;
     const total = rawTotal * inflation;
+    const printOnlySub = (printPerUnitBrk * bQty + bShirt) * inflation;
+    lastComputed = {
+      qty: bQty,
+      printSubtotal: printOnlySub,
+      addonPerUnitTotal: addonPerUnit * bQty * inflation,
+      addonFlatTotal: addonFlat * inflation,
+      grand: total,
+      perShirt: null,
+      printPerUnit: printPerUnitBrk
+    };
     setGrand(total, 'Exact total based on size breakdown' + inflationNote, true);
     updateSizePriceBreakdown(shirt, totalSq * 0.349 + printCharge + SHIPPING_COST / bQty, addonPerUnit, inflation);
   }
